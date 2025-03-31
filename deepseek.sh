@@ -2,35 +2,30 @@
 
 GLOBIGNORE="*"
 
-CHAT_INIT_PROMPT="You are ChatGPT, a Large Language Model trained by OpenAI. You will be answering questions from users. You answer as concisely as possible for each response (e.g. don’t be verbose). If you are generating a list, do not have too many items. Keep the number of items short. Before each user prompt you will be given the chat history in Q&A form. Output your answer directly, with no labels in front. Do not start your answers with A or Anwser. You were trained on data up until 2021. Today's date is $(date +%m/%d/%Y)"
+CHAT_INIT_PROMPT="You are a helpful AI assistant trained by DeepSeek. You answer as concisely as possible for each response. If you are generating a list, do not have too many items. Keep the number of items short. Before each user prompt you will be given the chat history in Q&A form. Output your answer directly, with no labels in front. Today's date is $(date +%m/%d/%Y)."
 
-SYSTEM_PROMPT="You are ChatGPT, a large language model trained by OpenAI. Answer as concisely as possible. Current date: $(date +%m/%d/%Y). Knowledge cutoff: 9/1/2021."
+SYSTEM_PROMPT="You are a helpful AI assistant trained by DeepSeek. Answer as concisely as possible. Current date: $(date +%m/%d/%Y)."
 
 COMMAND_GENERATION_PROMPT="You are a Command Line Interface expert and your task is to provide functioning shell commands. Return a CLI command and nothing else - do not send it in a code block, quotes, or anything else, just the pure text CONTAINING ONLY THE COMMAND. If possible, return a one-line bash command or chain many commands together. Return ONLY the command ready to run in the terminal. The command should do the following:"
 
-CHATGPT_CYAN_LABEL="\033[36mchatgpt \033[0m"
+DEEPSEEK_BLUE_LABEL="\033[34mdeepseek \033[0m"
 PROCESSING_LABEL="\n\033[90mProcessing... \033[0m\033[0K\r"
 OVERWRITE_PROCESSING_LINE="             \033[0K\r"
 
-if [[ -z "$OPENAI_KEY" ]]; then
-	echo "You need to set your OPENAI_KEY to use this script"
-	echo "You can set it temporarily by running this on your terminal: export OPENAI_KEY=YOUR_KEY_HERE"
+if [[ -z "$DEEPSEEK_API_KEY" ]]; then
+	echo "You need to set your DEEPSEEK_API_KEY to use this script"
+	echo "You can set it temporarily by running this on your terminal: export DEEPSEEK_API_KEY=YOUR_KEY_HERE"
 	exit 1
 fi
 
 usage() {
 	cat <<EOF
-A simple, lightweight shell script to use OpenAI's Language Models and DALL-E from the terminal without installing Python or Node.js. Open Source and written in 100% Shell (Bash) 
-
-https://github.com/0xacx/chatGPT-shell-cli/
-
-By default the script uses the "gpt-3.5-turbo" model. It will upgrade to "gpt-4" when the API is accessible to anyone.
+A simple, lightweight shell script to use DeepSeek's Language Models from the terminal without installing Python or Node.js. Open Source and written in 100% Shell (Bash)
 
 Commands:
-  image: - To generate images, start a prompt with image: If you are using iTerm, you can view the image directly in the terminal. Otherwise the script will ask to open the image in your browser.
   history - To view your chat history
-  models - To get a list of the models available at OpenAI API
-  model: - To view all the information on a specific model, start a prompt with model: and the model id as it appears in the list of models. For example: "model:text-babbage:001" will get you all the fields for text-babbage:001 model
+  models - To get a list of the models available at DeepSeek API
+  model: - To view all the information on a specific model, start a prompt with model: and the model id
   command: - To get a command with the specified functionality and run it, just type "command:" and explain what you want to achieve. The script will always ask you if you want to execute the command. i.e. 
   "command: show me all files in this directory that have more than 150 lines of code" 
   *If a command modifies your file system or dowloads external files the script will show a warning before executing.
@@ -50,20 +45,14 @@ Options:
 
   --max-tokens               Max number of tokens
 
-  -l, --list                 List available openAI models
+  -l, --list                 List available DeepSeek models
 
-  -m, --model                Model to use
-
-  -s, --size                 Image size. (The sizes that are accepted by the
-                             OpenAI API are 256x256, 512x512, 1024x1024)
+  -m, --model                Model to use (default: deepseek-chat)
 
   -c, --chat-context         For models that do not support chat context by
-                             default (all models except gpt-3.5-turbo and
-                             gpt-4), you can enable chat context, for the
+                             default, you can enable chat context, for the
                              model to remember your previous questions and
-                             its previous answers. It also makes models
-                             aware of todays date and what data it was trained
-                             on.
+                             its previous answers.
 
 EOF
 }
@@ -72,32 +61,33 @@ EOF
 # $1 should be the response body
 handle_error() {
 	if echo "$1" | jq -e '.error' >/dev/null; then
-		echo -e "Your request to Open AI API failed: \033[0;31m$(echo "$1" | jq -r '.error.type')\033[0m"
+		echo -e "Your request to DeepSeek API failed: \033[0;31m$(echo "$1" | jq -r '.error.type')\033[0m"
 		echo "$1" | jq -r '.error.message'
 		exit 1
 	fi
 }
 
-# request to openAI API models endpoint. Returns a list of models
+# request to DeepSeek API models endpoint. Returns a list of models
 # takes no input parameters
 list_models() {
-	models_response=$(curl https://api.openai.com/v1/models \
+	models_response=$(curl https://api.deepseek.com/v1/models \
 		-sS \
-		-H "Authorization: Bearer $OPENAI_KEY")
+		-H "Authorization: Bearer $DEEPSEEK_API_KEY")
 	handle_error "$models_response"
-	models_data=$(echo $models_response | jq -r -C '.data[] | {id, owned_by, created}')
+	models_data=$(echo $models_response | jq -r -C '.data[] | {id, owned_by}')
 	echo -e "$OVERWRITE_PROCESSING_LINE"
-	echo -e "${CHATGPT_CYAN_LABEL}This is a list of models currently available at OpenAI API:\n ${models_data}"
+	echo -e "${DEEPSEEK_BLUE_LABEL}This is a list of models currently available at DeepSeek API:\n ${models_data}"
 }
-# request to OpenAI API completions endpoint function
+
+# request to DeepSeek API completions endpoint function
 # $1 should be the request prompt
 request_to_completions() {
 	local prompt="$1"
 
-	curl https://api.openai.com/v1/completions \
+	curl https://api.deepseek.com/v1/completions \
 		-sS \
 		-H 'Content-Type: application/json' \
-		-H "Authorization: Bearer $OPENAI_KEY" \
+		-H "Authorization: Bearer $DEEPSEEK_API_KEY" \
 		-d '{
   			"model": "'"$MODEL"'",
   			"prompt": "'"$prompt"'",
@@ -106,31 +96,16 @@ request_to_completions() {
 			}'
 }
 
-# request to OpenAI API image generations endpoint function
-# $1 should be the prompt
-request_to_image() {
-	local prompt="$1"
-	image_response=$(curl https://api.openai.com/v1/images/generations \
-		-sS \
-		-H 'Content-Type: application/json' \
-		-H "Authorization: Bearer $OPENAI_KEY" \
-		-d '{
-    		"prompt": "'"${prompt#*image:}"'",
-    		"n": 1,
-    		"size": "'"$SIZE"'"
-			}')
-}
-
-# request to OpenAPI API chat completion endpoint function
+# request to DeepAPI API chat completion endpoint function
 # $1 should be the message(s) formatted with role and content
 request_to_chat() {
 	local message="$1"
 	escaped_system_prompt=$(escape "$SYSTEM_PROMPT")
-	
-	curl https://api.openai.com/v1/chat/completions \
+
+	curl https://api.deepseek.com/v1/chat/completions \
 		-sS \
 		-H 'Content-Type: application/json' \
-		-H "Authorization: Bearer $OPENAI_KEY" \
+		-H "Authorization: Bearer $DEEPSEEK_API_KEY" \
 		-d '{
             "model": "'"$MODEL"'",
             "messages": [
@@ -143,7 +118,7 @@ request_to_chat() {
 }
 
 # build chat context before each request for /completions (all models except
-# gpt turbo and gpt 4)
+# chat models)
 # $1 should be the escaped request prompt,
 # it extends $chat_context
 build_chat_context() {
@@ -159,8 +134,7 @@ escape() {
 	echo "$1" | jq -Rrs 'tojson[1:-1]'
 }
 
-# maintain chat context function for /completions (all models except
-# gpt turbo and gpt 4)
+# maintain chat context function for /completions
 # builds chat context from response,
 # keeps chat context length under max token limit
 # * $1 should be the escaped response data
@@ -169,7 +143,7 @@ maintain_chat_context() {
 	local escaped_response_data="$1"
 	# add response to chat context as answer
 	chat_context="$chat_context${chat_context:+\n}\nA: $escaped_response_data"
-	# check prompt length, 1 word =~ 1.3 tokens
+	# check prompt length, 1 word ~= 1.3 tokens
 	# reserving 100 tokens for next user prompt
 	while (($(echo "$chat_context" | wc -c) * 1, 3 > (MAX_TOKENS - 100))); do
 		# remove first/oldest QnA from prompt
@@ -179,7 +153,7 @@ maintain_chat_context() {
 	done
 }
 
-# build user chat message function for /chat/completions (gpt models)
+# build user chat message function for /chat/completions
 # builds chat message before request,
 # $1 should be the escaped request prompt,
 # it extends $chat_message
@@ -192,8 +166,7 @@ build_user_chat_message() {
 	fi
 }
 
-# adds the assistant response to the message in (chatml) format
-# for /chat/completions (gpt models)
+# adds the assistant response to the message in chat format
 # keeps messages length under max token limit
 # * $1 should be the escaped response data
 # * it extends and potentially shrinks $chat_message
@@ -204,7 +177,7 @@ add_assistant_response_to_chat_message() {
 
 	# transform to json array to parse with jq
 	local chat_message_json="[ $chat_message ]"
-	# check prompt length, 1 word =~ 1.3 tokens
+	# check prompt length, 1 word ~= 1.3 tokens
 	# reserving 100 tokens for next user prompt
 	while (($(echo "$chat_message" | wc -c) * 1, 3 > (MAX_TOKENS - 100))); do
 		# remove first/oldest QnA from prompt
@@ -258,11 +231,6 @@ while [[ "$#" -gt 0 ]]; do
 		shift
 		shift
 		;;
-	-s | --size)
-		SIZE="$2"
-		shift
-		shift
-		;;
 	--multi-line-prompt)
 		MULTI_LINE_PROMPT=true
 		shift
@@ -285,8 +253,7 @@ done
 # set defaults
 TEMPERATURE=${TEMPERATURE:-0.7}
 MAX_TOKENS=${MAX_TOKENS:-1024}
-MODEL=${MODEL:-gpt-3.5-turbo}
-SIZE=${SIZE:-512x512}
+MODEL=${MODEL:-deepseek-chat}
 CONTEXT=${CONTEXT:-false}
 MULTI_LINE_PROMPT=${MULTI_LINE_PROMPT:-false}
 
@@ -297,9 +264,9 @@ if [ $MULTI_LINE_PROMPT = true ]; then
 fi
 
 # create history file
-if [ ! -f ~/.chatgpt_history ]; then
-	touch ~/.chatgpt_history
-	chmod 600 ~/.chatgpt_history
+if [ ! -f ~/.deepseek_history ]; then
+	touch ~/.deepseek_history
+	chmod 600 ~/.deepseek_history
 fi
 
 running=true
@@ -310,7 +277,7 @@ if [ -n "$prompt" ]; then
 	pipe_mode_prompt=${prompt}
 # if input file_descriptor is a terminal, run on chat mode
 elif [ -t 0 ]; then
-	echo -e "Welcome to chatgpt. You can quit with '\033[36mexit\033[0m' or '\033[36mq\033[0m'."
+	echo -e "Welcome to deepseek. You can quit with '\033[34mexit\033[0m' or '\033[34mq\033[0m'."
 # prompt from pipe or redirected stdin, run on pipe mode
 else
 	pipe_mode_prompt+=$(cat -)
@@ -335,45 +302,23 @@ while $running; do
 		# set vars for pipe mode
 		prompt=${pipe_mode_prompt}
 		running=false
-		CHATGPT_CYAN_LABEL=""
+		DEEPSEEK_BLUE_LABEL=""
 	fi
 
 	if [[ $prompt =~ ^(exit|q)$ ]]; then
 		running=false
-	elif [[ "$prompt" =~ ^image: ]]; then
-		request_to_image "$prompt"
-		handle_error "$image_response"
-		image_url=$(echo "$image_response" | jq -r '.data[0].url')
-		echo -e "$OVERWRITE_PROCESSING_LINE"
-		echo -e "${CHATGPT_CYAN_LABEL}Your image was created. \n\nLink: ${image_url}\n"
-
-		if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
-			curl -sS $image_url -o temp_image.png
-			imgcat temp_image.png
-			rm temp_image.png
-		elif [[ "$TERM" == "xterm-kitty" ]]; then
-			curl -sS $image_url -o temp_image.png
-			kitty +kitten icat temp_image.png
-			rm temp_image.png
-		else
-			echo "Would you like to open it? (Yes/No)"
-			read -e answer
-			if [ "$answer" == "Yes" ] || [ "$answer" == "yes" ] || [ "$answer" == "y" ] || [ "$answer" == "Y" ] || [ "$answer" == "ok" ]; then
-				open "${image_url}"
-			fi
-		fi
 	elif [[ "$prompt" == "history" ]]; then
-		echo -e "\n$(cat ~/.chatgpt_history)"
+		echo -e "\n$(cat ~/.deepseek_history)"
 	elif [[ "$prompt" == "models" ]]; then
 		list_models
 	elif [[ "$prompt" =~ ^model: ]]; then
-		models_response=$(curl https://api.openai.com/v1/models \
+		models_response=$(curl https://api.deepseek.com/v1/models \
 			-sS \
-			-H "Authorization: Bearer $OPENAI_KEY")
+			-H "Authorization: Bearer $DEEPSEEK_API_KEY")
 		handle_error "$models_response"
 		model_data=$(echo $models_response | jq -r -C '.data[] | select(.id=="'"${prompt#*model:}"'")')
 		echo -e "$OVERWRITE_PROCESSING_LINE"
-		echo -e "${CHATGPT_CYAN_LABEL}Complete details for model: ${prompt#*model:}\n ${model_data}"
+		echo -e "${DEEPSEEK_BLUE_LABEL}Complete details for model: ${prompt#*model:}\n ${model_data}"
 	elif [[ "$prompt" =~ ^command: ]]; then
 		# escape quotation marks, new lines, backslashes...
 		escaped_prompt=$(escape "$prompt")
@@ -384,29 +329,28 @@ while $running; do
 		handle_error "$response"
 		response_data=$(echo $response | jq -r '.choices[].message.content')
 
-		if [[ "$prompt" =~ ^command: ]]; then
-			echo -e "$OVERWRITE_PROCESSING_LINE"
-			echo -e "${CHATGPT_CYAN_LABEL} ${response_data}" | fold -s -w $COLUMNS
-			dangerous_commands=("rm" ">" "mv" "mkfs" ":(){:|:&};" "dd" "chmod" "wget" "curl")
+		echo -e "$OVERWRITE_PROCESSING_LINE"
+		echo -e "${DEEPSEEK_BLUE_LABEL} ${response_data}" | fold -s -w $COLUMNS
+		dangerous_commands=("rm" ">" "mv" "mkfs" ":(){:|:&};" "dd" "chmod" "wget" "curl")
 
-			for dangerous_command in "${dangerous_commands[@]}"; do
-				if [[ "$response_data" == *"$dangerous_command"* ]]; then
-					echo "Warning! This command can change your file system or download external scripts & data. Please do not execute code that you don't understand completely."
-				fi
-			done
-			echo "Would you like to execute it? (Yes/No)"
-			read run_answer
-			if [ "$run_answer" == "Yes" ] || [ "$run_answer" == "yes" ] || [ "$run_answer" == "y" ] || [ "$run_answer" == "Y" ]; then
-				echo -e "\nExecuting command: $response_data\n"
-				eval $response_data
+		for dangerous_command in "${dangerous_commands[@]}"; do
+			if [[ "$response_data" == *"$dangerous_command"* ]]; then
+				echo "Warning! This command can change your file system or download external scripts & data. Please do not execute code that you don't understand completely."
 			fi
+		done
+		echo "Would you like to execute it? (Yes/No)"
+		read run_answer
+		if [ "$run_answer" == "Yes" ] || [ "$run_answer" == "yes" ] || [ "$run_answer" == "y" ] || [ "$run_answer" == "Y" ]; then
+			echo -e "\nExecuting command: $response_data\n"
+			eval $response_data
 		fi
+
 		add_assistant_response_to_chat_message "$(escape "$response_data")"
 
 		timestamp=$(date +"%Y-%m-%d %H:%M")
-		echo -e "$timestamp $prompt \n$response_data \n" >>~/.chatgpt_history
+		echo -e "$timestamp $prompt \n$response_data \n" >>~/.deepseek_history
 
-	elif [[ "$MODEL" =~ ^gpt- ]]; then
+	elif [[ "$MODEL" =~ ^deepseek-chat ]]; then
 		# escape quotation marks, new lines, backslashes...
 		request_prompt=$(escape "$prompt")
 
@@ -418,15 +362,15 @@ while $running; do
 		echo -e "$OVERWRITE_PROCESSING_LINE"
 		# if glow installed, print parsed markdown
 		if command -v glow &>/dev/null; then
-			echo -e "${CHATGPT_CYAN_LABEL}"
+			echo -e "${DEEPSEEK_BLUE_LABEL}"
 			echo "${response_data}" | glow -
 		else
-			echo -e "${CHATGPT_CYAN_LABEL}${response_data}" | fold -s -w "$COLUMNS"
+			echo -e "${DEEPSEEK_BLUE_LABEL}${response_data}" | fold -s -w "$COLUMNS"
 		fi
 		add_assistant_response_to_chat_message "$(escape "$response_data")"
 
 		timestamp=$(date +"%Y-%m-%d %H:%M")
-		echo -e "$timestamp $prompt \n$response_data \n" >>~/.chatgpt_history
+		echo -e "$timestamp $prompt \n$response_data \n" >>~/.deepseek_history
 	else
 		# escape quotation marks, new lines, backslashes...
 		request_prompt=$(escape "$prompt")
@@ -442,12 +386,12 @@ while $running; do
 		echo -e "$OVERWRITE_PROCESSING_LINE"
 		# if glow installed, print parsed markdown
 		if command -v glow &>/dev/null; then
-			echo -e "${CHATGPT_CYAN_LABEL}"
+			echo -e "${DEEPSEEK_BLUE_LABEL}"
 			echo "${response_data}" | glow -
 		else
 			# else remove empty lines and print
 			formatted_text=$(echo "${response_data}" | sed '1,2d; s/^A://g')
-			echo -e "${CHATGPT_CYAN_LABEL}${formatted_text}" | fold -s -w $COLUMNS
+			echo -e "${DEEPSEEK_BLUE_LABEL}${formatted_text}" | fold -s -w $COLUMNS
 		fi
 
 		if [ "$CONTEXT" = true ]; then
@@ -455,6 +399,6 @@ while $running; do
 		fi
 
 		timestamp=$(date +"%Y-%m-%d %H:%M")
-		echo -e "$timestamp $prompt \n$response_data \n" >>~/.chatgpt_history
+		echo -e "$timestamp $prompt \n$response_data \n" >>~/.deepseek_history
 	fi
 done
