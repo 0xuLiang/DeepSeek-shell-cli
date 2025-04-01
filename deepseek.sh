@@ -26,8 +26,8 @@ Commands:
   history - To view your chat history
   models - To get a list of the models available at DeepSeek API
   model: - To view all the information on a specific model, start a prompt with model: and the model id
-  command: - To get a command with the specified functionality and run it, just type "command:" and explain what you want to achieve. The script will always ask you if you want to execute the command. i.e. 
-  "command: show me all files in this directory that have more than 150 lines of code" 
+  command: - To get a command with the specified functionality and run it, just type "command:" and explain what you want to achieve. The script will always ask you if you want to execute the command. i.e.
+  "command: show me all files in this directory that have more than 150 lines of code"
   *If a command modifies your file system or dowloads external files the script will show a warning before executing.
 
 Options:
@@ -38,6 +38,8 @@ Options:
   -p, --prompt               Provide prompt instead of starting chat
 
   --prompt-from-file         Provide prompt from file
+
+  --prompt-from-pasteboard   Provide prompt from pasteboard
 
   -b, --big-prompt           Allow multi-line prompts during chat mode
 
@@ -202,6 +204,10 @@ while [[ "$#" -gt 0 ]]; do
 		shift
 		shift
 		;;
+	--prompt-from-pasteboard)
+		prompt=$(pbpaste)
+		shift
+		;;
 	-p | --prompt)
 		prompt="$2"
 		shift
@@ -294,6 +300,9 @@ while $running; do
 		else
 			echo -e "\nEnter a prompt:"
 			read -e prompt
+			if [[ "$prompt" == "pb" ]]; then
+			  prompt=$(pbpaste)
+			fi
 		fi
 		if [[ ! $prompt =~ ^(exit|q)$ ]]; then
 			echo -ne $PROCESSING_LABEL
