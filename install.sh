@@ -48,10 +48,21 @@ echo "Installed deepseek script to /usr/local/bin/deepseek"
 
 echo "The script will add the DEEPSEEK_API_KEY environment variable to your shell profile and add /usr/local/bin to your PATH"
 echo "Would you like to continue? (Yes/No)"
-read -e answer
+# Ensure reading from the terminal even if script is piped
+if [ -t 0 ]; then
+  read -r answer
+else
+  read -r answer < /dev/tty
+fi
+
 if [ "$answer" == "Yes" ] || [ "$answer" == "yes" ] || [ "$answer" == "y" ] || [ "$answer" == "Y" ] || [ "$answer" == "ok" ]; then
 
-  read -p "Please enter your DeepSeek API key: " key
+  echo "Please enter your DeepSeek API key: "
+  if [ -t 0 ]; then
+    read -r key
+  else
+    read -r key < /dev/tty
+  fi
 
   # Adding DeepSeek API key to shell profile
   # zsh profile
@@ -61,7 +72,6 @@ if [ "$answer" == "Yes" ] || [ "$answer" == "yes" ] || [ "$answer" == "y" ] || [
       echo 'export PATH=$PATH:/usr/local/bin' >>~/.zprofile
     fi
     echo "DeepSeek API key and deepseek path added to ~/.zprofile"
-    source ~/.zprofile
   # zshrc profile for debian
   elif [ -f ~/.zshrc ]; then
     echo "export DEEPSEEK_API_KEY=$key" >>~/.zshrc
@@ -69,7 +79,6 @@ if [ "$answer" == "Yes" ] || [ "$answer" == "yes" ] || [ "$answer" == "y" ] || [
       echo 'export PATH=$PATH:/usr/local/bin' >>~/.zshrc
     fi
     echo "DeepSeek API key and deepseek path added to ~/.zshrc"
-    source ~/.zshrc
   # bash profile mac
   elif [ -f ~/.bash_profile ]; then
     echo "export DEEPSEEK_API_KEY=$key" >>~/.bash_profile
@@ -77,7 +86,6 @@ if [ "$answer" == "Yes" ] || [ "$answer" == "yes" ] || [ "$answer" == "y" ] || [
       echo 'export PATH=$PATH:/usr/local/bin' >>~/.bash_profile
     fi
     echo "DeepSeek API key and deepseek path added to ~/.bash_profile"
-    source ~/.bash_profile
   # profile ubuntu
   elif [ -f ~/.profile ]; then
     echo "export DEEPSEEK_API_KEY=$key" >>~/.profile
@@ -85,7 +93,6 @@ if [ "$answer" == "Yes" ] || [ "$answer" == "yes" ] || [ "$answer" == "y" ] || [
       echo 'export PATH=$PATH:/usr/local/bin' >>~/.profile
     fi
     echo "DeepSeek API key and deepseek path added to ~/.profile"
-    source ~/.profile
   else
     export DEEPSEEK_API_KEY=$key
     echo "You need to add this to your shell profile: export DEEPSEEK_API_KEY=$key"
