@@ -7,9 +7,11 @@ A simple, lightweight shell script to use DeepSeek's language models from the te
 ## Features
 
 - [Chat](#use-the-official-deepseek-model) with the ✨ [DeepSeek API](https://api-docs.deepseek.com) ✨ from the terminal
-- View your [chat history](#commands)
+- [Chat mode](#chat-mode), normal prompt or specific prompt `pb` to fetch from pasteboard
+- Pass the input prompt with [pipe](#pipe-mode) or [pasteboard](#pasteboard-mode), as a [script parameter](#script-parameters)
 - [Chat context](#chat-context), DeepSeek remembers previous chat questions and answers
-- Pass the input prompt with [pipe](#pipe-mode), as a [script parameter](#script-parameters) or normal [chat mode](#chat-mode)
+- Automatic response localization based on system language
+- View your [chat history](#commands)
 - List all available [DeepSeek models](#commands)
 - Set DeepSeek [request parameters](#set-request-parameters)
 - Generate a [command](#commands) and run it in terminal
@@ -17,9 +19,10 @@ A simple, lightweight shell script to use DeepSeek's language models from the te
 [Chat mode](#chat-mode):
 ```shell
 $ deepseek
-Welcome to deepseek. You can quit with 'exit'.
+Welcome to deepseek. You can quit with 'exit' or 'q'.
 
 Enter a prompt:
+# normal prompt or specific prompt 'pb' to fetch from pasteboard
 
 ```
 
@@ -31,7 +34,6 @@ Welcome to deepseek. You can quit with 'exit' or 'q'.
 Enter a prompt:
 解释下 DeepSeek 是如何工作的
 
-             
 deepseek 
 
   呵呵，你这问题问得跟八戒偷人参果似的——啥都不懂就想一口吞啊！(狗头)              
@@ -39,7 +41,6 @@ deepseek
   DeepSeek 这玩意儿就像俺老孙的火眼金睛，能看穿你这凡人的小心思！它用的是大模型架构，跟三国演义里诸葛亮的八卦阵似的层层叠叠。训练数据多得能填满东海龙宫，参数数量比俺的金箍棒还重！
                                                                                   
   你这呆子是不是以为 AI 跟猪八戒吃西瓜一样简单？(笑死)                              
-
 
 Enter a prompt:
 
@@ -86,8 +87,8 @@ To install, run this in your terminal and provide your DeepSeek API key when ask
 
 If you want to install it manually, all you have to do is:
 
-- Download the `deepseek.sh` file in a directory you want
-- Add the path of `deepseek.sh` to your `$PATH`. You do that by adding this line to your shell profile: `export PATH=$PATH:/path/to/deepseek.sh`
+- Download the [`deepseek.sh`](https://raw.githubusercontent.com/0xuLiang/DeepSeek-shell-cli/master/deepseek.sh) file in a directory you want
+- Add the path to your `$PATH`. You do that by adding this line to your shell profile: `export PATH=$PATH:/path/to/deepseek.sh`
 - Add the DeepSeek API key to your shell profile by adding this line `export DEEPSEEK_API_KEY=your_key_here`
 
 ## Usage
@@ -95,11 +96,25 @@ If you want to install it manually, all you have to do is:
 ### Start
 
 #### Chat Mode
-- Run the script by using the `deepseek` command anywhere. By default, the script uses the deepseek-chat model.
+- Run the script by using the `deepseek` command anywhere. By default, the script uses the `deepseek-chat` model.
+- Type `pb` to fetch the prompt from your pasteboard:
+  ```shell
+  $ deepseek
+  Enter a prompt:
+  pb  # Fetches pasteboard content automatically
+  ```
 #### Pipe Mode
 - You can also use it in pipe mode `echo "What is the command to get all pdf files created yesterday?" | deepseek`
+#### Pasteboard Mode
+- Use `--prompt-from-pasteboard` to read prompts directly from your pasteboard:
+  ```shell
+  deepseek --prompt-from-pasteboard
+  ```
 #### Script Parameters
 - You can also pass the prompt as a command line argument `deepseek -p "What is the regex to match an email address?"`
+#### Localization
+- Responses now default to your system language (detected from environment variables or OS settings).
+- To override, specify the language in your prompt (e.g., "Respond in French: How does DeepSeek work?").
 
 ### Commands
 
@@ -108,6 +123,7 @@ If you want to install it manually, all you have to do is:
 - `model:` To view all the information on a specific model, start a prompt with `model:` and the model `id` as it appears in the list of models. For example: `model:deepseek-reasoner` will get you all the fields for the `deepseek-reasoner` model
 - `command:` To get a command with the specified functionality and run it, just type `command:` and explain what you want to achieve. The script will always ask you if you want to execute the command. i.e. `command: show me all files in this directory that have more than 150 lines of code`
 *If a command modifies your file system or downloads external files, the script will show a warning before executing.*
+- `pb` In chat mode, type `pb` to use the prompt from your pasteboard
 
 ### Chat context
 
@@ -133,5 +149,6 @@ If you want to install it manually, all you have to do is:
     - max number of tokens, `--max-tokens`
     - prompt, `-p` or `--prompt`
     - prompt from a file in your file system, `--prompt-from-file`
+    - prompt from pasteboard, `--prompt-from-pasteboard`
 
   To learn more about these parameters you can view the [API documentation](https://api-docs.deepseek.com)
