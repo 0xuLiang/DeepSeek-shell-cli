@@ -2,9 +2,57 @@
 
 GLOBIGNORE="*"
 
+get_system_language() {
+  local detected_langs=()
+  local current_lang
+
+  if [ -n "$LANG" ]; then
+    current_lang=$(echo "$LANG" | cut -d. -f1)
+    detected_langs+=("$current_lang")
+  fi
+
+  if [ -n "$LC_ALL" ]; then
+    current_lang=$(echo "$LC_ALL" | cut -d. -f1)
+    detected_langs+=("$current_lang")
+  fi
+
+  # macOS
+  if command -v defaults &> /dev/null; then
+    current_lang=$(defaults read -g AppleLocale 2>/dev/null)
+    if [ -n "$current_lang" ]; then
+      detected_langs+=("$current_lang")
+    fi
+  fi
+
+  # Linux
+  if [ -f /etc/locale.conf ]; then
+    current_lang=$(grep -oP "(?<=LANG=).+" /etc/locale.conf 2>/dev/null | cut -d. -f1)
+    if [ -n "$current_lang" ]; then
+      detected_langs+=("$current_lang")
+    fi
+  fi
+
+  # return the first non-English language found
+  for lang in "${detected_langs[@]}"; do
+    if [[ ! "$lang" =~ ^en ]]; then
+      echo "$lang"
+      return 0
+    fi
+  done
+
+  # if no non-English language found, return the first detected language if any
+  if [ ${#detected_langs[@]} -gt 0 ]; then
+    echo "${detected_langs[0]}"
+    return 0
+  fi
+
+  echo "en_US"
+  return 1
+}
+
 CHAT_INIT_PROMPT="You are a helpful AI assistant trained by DeepSeek. You answer as concisely as possible for each response. If you are generating a list, do not have too many items. Keep the number of items short. Before each user prompt you will be given the chat history in Q&A form. Output your answer directly, with no labels in front. Today's date is $(date +%m/%d/%Y)."
 
-SYSTEM_PROMPT="You are a helpful AI assistant trained by DeepSeek. Answer as concisely as possible. Current date: $(date +%m/%d/%Y)."
+SYSTEM_PROMPT="You are a helpful AI assistant trained by DeepSeek. Answer as concisely as possible. Default respond in the language $(get_system_language), unless the user prompt specifies otherwise. Current date: $(date +%m/%d/%Y)."
 
 COMMAND_GENERATION_PROMPT="You are a Command Line Interface expert and your task is to provide functioning shell commands. Return a CLI command and nothing else - do not send it in a code block, quotes, or anything else, just the pure text CONTAINING ONLY THE COMMAND. If possible, return a one-line bash command or chain many commands together. Return ONLY the command ready to run in the terminal. The command should do the following:"
 
