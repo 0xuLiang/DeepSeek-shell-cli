@@ -48,10 +48,21 @@ echo "Installed chatgpt script to /usr/local/bin/chatgpt"
 
 echo "The script will add the OPENAI_KEY environment variable to your shell profile and add /usr/local/bin to your PATH"
 echo "Would you like to continue? (Yes/No)"
-read -e answer
+# Ensure reading from the terminal even if script is piped
+if [ -t 0 ]; then
+  read -r answer
+else
+  read -r answer < /dev/tty
+fi
+
 if [ "$answer" == "Yes" ] || [ "$answer" == "yes" ] || [ "$answer" == "y" ] || [ "$answer" == "Y" ] || [ "$answer" == "ok" ]; then
 
-  read -p "Please enter your OpenAI API key: " key
+  echo "Please enter your OpenAI API key: "
+  if [ -t 0 ]; then
+    read -r key
+  else
+    read -r key < /dev/tty
+  fi
 
   # Adding OpenAI key to shell profile
   # zsh profile
