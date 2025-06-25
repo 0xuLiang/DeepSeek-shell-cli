@@ -348,8 +348,8 @@ while $running; do
 		else
 			echo -e "\nEnter a prompt:"
 			read -e prompt
-			if [[ "$prompt" == "pb" ]]; then
-			  prompt=$(pbpaste)
+			if [[ "$prompt" =~ ^[[:space:]]*pb($|[[:space:]]) ]]; then
+				prompt="$(pbpaste)"$'\n'"${prompt#"${prompt%%pb*}pb"}"
 			fi
 		fi
 		if [[ ! $prompt =~ ^(exit|q)$ ]]; then

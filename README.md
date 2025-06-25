@@ -7,7 +7,7 @@ A simple, lightweight shell script to use DeepSeek's language models from the te
 ## Features
 
 - [Chat](#use-the-official-deepseek-model) with the ✨ [DeepSeek API](https://api-docs.deepseek.com) ✨ from the terminal
-- [Chat mode](#chat-mode), normal prompt or specific prompt `pb` to fetch from pasteboard
+- [Chat mode](#chat-mode), normal prompt or specific prompt leading `pb` to fetch from pasteboard
 - Pass the input prompt with [pipe](#pipe-mode) or [pasteboard](#pasteboard-mode), as a [script parameter](#script-parameters)
 - [Chat context](#chat-context), DeepSeek remembers previous chat questions and answers
 - Automatic response localization based on system language
@@ -22,7 +22,7 @@ $ deepseek
 Welcome to deepseek. You can quit with 'exit' or 'q'.
 
 Enter a prompt:
-# normal prompt or specific prompt 'pb' to fetch from pasteboard
+# normal prompt or specific prompt leading 'pb' to fetch from pasteboard
 
 ```
 
@@ -97,11 +97,11 @@ If you want to install it manually, all you have to do is:
 
 #### Chat Mode
 - Run the script by using the `deepseek` command anywhere. By default, the script uses the `deepseek-chat` model.
-- Type `pb` to fetch the prompt from your pasteboard:
+- Type leading `pb` to fetch the prompt from your pasteboard:
   ```shell
   $ deepseek
   Enter a prompt:
-  pb  # Fetches pasteboard content automatically
+  pb explain this # Fetches pasteboard content automatically
   ```
 #### Pipe Mode
 - You can also use it in pipe mode `echo "What is the command to get all pdf files created yesterday?" | deepseek`
@@ -123,7 +123,7 @@ If you want to install it manually, all you have to do is:
 - `model:` To view all the information on a specific model, start a prompt with `model:` and the model `id` as it appears in the list of models. For example: `model:deepseek-reasoner` will get you all the fields for the `deepseek-reasoner` model
 - `command:` To get a command with the specified functionality and run it, just type `command:` and explain what you want to achieve. The script will always ask you if you want to execute the command. i.e. `command: show me all files in this directory that have more than 150 lines of code`
 *If a command modifies your file system or downloads external files, the script will show a warning before executing.*
-- `pb` In chat mode, type `pb` to use the prompt from your pasteboard
+- `pb` In chat mode, type leading `pb` to use the prompt from your pasteboard
 
 ### Chat context
 
