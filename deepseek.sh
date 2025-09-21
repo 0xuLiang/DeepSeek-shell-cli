@@ -50,6 +50,24 @@ get_system_language() {
   return 1
 }
 
+# language code to full name mapping for translation
+get_language_name() {
+  local lang_code="$1"
+  case "$lang_code" in
+    zh) echo "Chinese" ;;
+    en) echo "English" ;;
+    ja) echo "Japanese" ;;
+    fr) echo "French" ;;
+    de) echo "German" ;;
+    es) echo "Spanish" ;;
+    ko) echo "Korean" ;;
+    ru) echo "Russian" ;;
+    it) echo "Italian" ;;
+    pt) echo "Portuguese" ;;
+    *) echo "$lang_code" ;;  # fallback to code if unknown
+  esac
+}
+
 CHAT_INIT_PROMPT="You are a helpful AI assistant trained by DeepSeek. You answer as concisely as possible for each response. If you are generating a list, do not have too many items. Keep the number of items short. Before each user prompt you will be given the chat history in Q&A form. Output your answer directly, with no labels in front. Today's date is $(date +%m/%d/%Y)."
 
 SYSTEM_PROMPT="You are a helpful AI assistant trained by DeepSeek. Answer as concisely as possible. Default respond in the language $(get_system_language), unless the user prompt specifies otherwise. Current date: $(date +%m/%d/%Y)."
@@ -98,6 +116,9 @@ Options:
   -l, --list                 List available DeepSeek models
 
   -m, --model                Model to use (default: deepseek-chat)
+
+  -tr, --translate           Translate piped input to specified language (default: zh)
+                             Use -tr <lang> for specific language (e.g., en, ja)
 
   -c, --chat-context         For models that do not support chat context by
                              default, you can enable chat context, for the
@@ -285,6 +306,15 @@ while [[ "$#" -gt 0 ]]; do
 		shift
 		shift
 		;;
+	-tr | --translate)
+		if [[ $# -gt 1 && ! "$2" =~ ^- ]]; then
+			TRANSLATE_LANG="$2"
+			shift
+		else
+			TRANSLATE_LANG="${DEEPSEEK_DEFAULT_TRANSLATE_LANG:-zh}"
+		fi
+		shift
+		;;
 	--multi-line-prompt)
 		MULTI_LINE_PROMPT=true
 		shift
@@ -360,6 +390,12 @@ while $running; do
 		prompt=${pipe_mode_prompt}
 		running=false
 		DEEPSEEK_BLUE_LABEL=""
+	fi
+
+	# apply translation if enabled
+	if [ -n "$TRANSLATE_LANG" ]; then
+		lang_name=$(get_language_name "$TRANSLATE_LANG")
+		prompt="Translate the following text to $lang_name, keeping the original formatting and layout intact: $prompt"
 	fi
 
 	if [[ $prompt =~ ^(exit|q)$ ]]; then

@@ -9,6 +9,7 @@
 - 在终端中与 ✨ [DeepSeek API](https://api-docs.deepseek.com) ✨ 进行[对话](#use-the-official-deepseek-model)
 - [聊天模式](#chat-mode)，支持普通提示词或使用 `pb` 前缀从剪贴板获取内容
 - 通过[管道](#pipe-mode)或[剪贴板](#pasteboard-mode)传递输入提示词，或作为[脚本参数](#script-parameters)
+- [翻译功能](#pipe-mode)，支持通过管道翻译文本为指定语言，默认中文，保持原格式
 - [对话上下文](#chat-context)，DeepSeek 会记住之前的聊天问题和答案
 - 基于系统语言的自动响应本地化
 - 查看你的[聊天历史](#commands)
@@ -105,6 +106,9 @@ deepseek -p "What is the regex to match an email address?"
   ```
 #### 管道模式
 - 你也可以在管道模式下使用：`echo "What is the command to get all pdf files created yesterday?" | deepseek`
+- 支持翻译功能：`man ls | deepseek -tr`（翻译为中文，默认语言）
+- 指定翻译语言：`man ls | deepseek -tr en`（翻译为英文）
+- 默认翻译语言可通过环境变量 `DEEPSEEK_DEFAULT_TRANSLATE_LANG` 配置，默认中文
 #### 剪贴板模式
 - 使用 `--prompt-from-pasteboard` 直接从剪贴板读取提示词：
   ```shell
@@ -150,5 +154,6 @@ deepseek -p "What is the regex to match an email address?"
     - prompt，`-p` 或 `--prompt`
     - prompt from a file in your file system，`--prompt-from-file`
     - prompt from pasteboard，`--prompt-from-pasteboard`
+    - translate piped input，`-tr` or `--translate` (optional language code, default: zh)
 
   要了解更多关于这些参数的信息，你可以查看 [API 文档](https://api-docs.deepseek.com)
